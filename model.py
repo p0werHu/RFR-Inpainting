@@ -1,13 +1,15 @@
+from collections import OrderedDict
+
 import torch
 import torch.optim as optim
-from utils.io import load_ckpt
-from utils.io import save_ckpt
+from util.io import load_ckpt
+from util.io import save_ckpt
 from torchvision.utils import make_grid
 from torchvision.utils import save_image
 from modules.RFRNet import RFRNet, VGG16FeatureExtractor
 import os
 import time
-
+from util.visualizer import Visualizer
 
 class RFRNetModel():
     def __init__(self):
@@ -21,10 +23,14 @@ class RFRNetModel():
         self.fake_B = None
         self.comp_B = None
         self.l1_loss_val = 0.0
-    
+        self.visual_names = ['real_A', 'real_B', 'mask', 'fake_B', 'comp_B']
+        self.model_names = ['G']
+        self.visualizer = Visualizer()
+
     def initialize_model(self, path=None, train=True):
         self.G = RFRNet()
         self.optm_G = optim.Adam(self.G.parameters(), lr = 2e-4)
+        self.print_networks(False)
         if train:
             self.lossNet = VGG16FeatureExtractor()
         try:
@@ -73,9 +79,14 @@ class RFRNetModel():
                     if not os.path.exists('{:s}'.format(save_path)):
                         os.makedirs('{:s}'.format(save_path))
                     save_ckpt('{:s}/g_{:d}.pth'.format(save_path, self.iter ), [('generator', self.G)], [('optimizer_G', self.optm_G)], self.iter)
+
+                if self.iter % 200 == 0:
+                    self.visualizer.display_current_results(self.get_current_visuals(), self.iter, False)
+
         if not os.path.exists('{:s}'.format(save_path)):
             os.makedirs('{:s}'.format(save_path))
             save_ckpt('{:s}/g_{:s}.pth'.format(save_path, "final"), [('generator', self.G)], [('optimizer_G', self.optm_G)], self.iter)
+
     def test(self, test_loader, result_save_path):
         self.G.eval()
         for para in self.G.parameters():
@@ -179,4 +190,34 @@ class RFRNetModel():
             
     def __cuda__(self, *args):
         return (item.to(self.device) for item in args)
-            
+
+    def get_current_visuals(self):
+        """Return visualization images. train.py will display these images with visdom, and save the images to a HTML"""
+        visual_ret = OrderedDict()
+        for name in self.visual_names:
+            if isinstance(name, str):
+                attr = getattr(self, name)
+                if isinstance(attr, list):
+                    for i in range(len(attr)):
+                        visual_ret[name+':'+str(i)] = attr[i]
+                else:
+                    visual_ret[name] = attr
+        return visual_ret
+
+    def print_networks(self, verbose):
+        """Print the total number of parameters in the network and (if verbose) network architecture
+
+        Parameters:
+            verbose (bool) -- if verbose: print the network architecture
+        """
+        print('---------- Networks initialized -------------')
+        for name in self.model_names:
+            if isinstance(name, str):
+                net = getattr(self, name)
+                num_params = 0
+                for param in net.parameters():
+                    num_params += param.numel()
+                if verbose:
+                    print(net)
+                print('[Network %s] Total number of parameters : %.3f M' % (name, num_params / 1e6))
+        print('-----------------------------------------------')

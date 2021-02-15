@@ -6,19 +6,19 @@ from torch.utils.data import DataLoader
 
 def run():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_root', type=str)
-    parser.add_argument('--mask_root', type=str)
+    parser.add_argument('--data_root', type=str, default='/home/junfeng/dataset/img_align_celeba')
+    parser.add_argument('--mask_root', type=str, default='/home/junfeng/dataset/qd_imd/train')
     parser.add_argument('--model_save_path', type=str, default='checkpoint')
     parser.add_argument('--result_save_path', type=str, default='results')
     parser.add_argument('--target_size', type=int, default=256)
     parser.add_argument('--mask_mode', type=int, default=1)
     parser.add_argument('--num_iters', type=int, default=450000)
     parser.add_argument('--model_path', type=str, default="checkpoint/100000.pth")
-    parser.add_argument('--batch_size', type=int, default=6)
+    parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--n_threads', type=int, default=6)
     parser.add_argument('--finetune', action='store_true')
     parser.add_argument('--test', action='store_true')
-    parser.add_argument('--gpu_id', type=str, default="0")
+    parser.add_argument('--gpu_id', type=str, default="2,3")
     args = parser.parse_args()
         
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
