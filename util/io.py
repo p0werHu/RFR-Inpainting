@@ -7,6 +7,7 @@ def get_state_dict_on_cpu(obj):
     state_dict = obj.state_dict()
     for key in state_dict.keys():
         state_dict[key] = state_dict[key].to(cpu_device)
+
     return state_dict
 
 
